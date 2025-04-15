@@ -1,3 +1,5 @@
+#include <Arduino.h>
+#line 1 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
 #include <TFT_eSPI.h>
 #include "Wire.h"
 #include "PCKeyboard.h"
@@ -115,6 +117,43 @@ char *text =
 struct viewer V;
 
 
+#line 118 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+line* new_line(char *buf, int len);
+#line 134 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+void read_str(char *str);
+#line 156 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+void initViewer();
+#line 180 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+void setup();
+#line 201 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+void refresh_screen();
+#line 232 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+void update_line();
+#line 246 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+void cursor(bool show);
+#line 275 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+uint32_t line_length();
+#line 282 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+bool fix_cursor_position();
+#line 311 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+bool move_cursor(char c);
+#line 402 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+bool move_to_x(int x);
+#line 414 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+void add_char(char c);
+#line 446 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+void handle_enter();
+#line 482 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+void merge_lines(int first);
+#line 509 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+void handle_delete();
+#line 530 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+void handle_backspace();
+#line 569 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+bool is_printable(char c);
+#line 575 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
+void loop();
+#line 118 "/home/mih/projects/picocalc_experiments/editor/editor.ino"
 line *new_line(char *buf, int len) {
   line *res = (line *)malloc(sizeof(line));
 

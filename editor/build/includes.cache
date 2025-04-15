@@ -1,0 +1,77 @@
+[
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "/home/mih/.arduino15/packages/rp2040/hardware/rp2040/4.5.1/cores/rp2040"
+  },
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "/home/mih/.arduino15/packages/rp2040/hardware/rp2040/4.5.1/variants/rpipico"
+  },
+  {
+    "Sourcefile": "/home/mih/projects/picocalc_experiments/editor/build/sketch/editor.ino.cpp",
+    "Include": "TFT_eSPI.h",
+    "Includepath": "/home/mih/Arduino/libraries/TFT_eSPI"
+  },
+  {
+    "Sourcefile": "/home/mih/projects/picocalc_experiments/editor/build/sketch/editor.ino.cpp",
+    "Include": "SPI.h",
+    "Includepath": "/home/mih/.arduino15/packages/rp2040/hardware/rp2040/4.5.1/libraries/SPI/src"
+  },
+  {
+    "Sourcefile": "/home/mih/projects/picocalc_experiments/editor/build/sketch/editor.ino.cpp",
+    "Include": "LittleFS.h",
+    "Includepath": "/home/mih/.arduino15/packages/rp2040/hardware/rp2040/4.5.1/libraries/LittleFS/src"
+  },
+  {
+    "Sourcefile": "/home/mih/projects/picocalc_experiments/editor/build/sketch/editor.ino.cpp",
+    "Include": "Wire.h",
+    "Includepath": "/home/mih/.arduino15/packages/rp2040/hardware/rp2040/4.5.1/libraries/Wire/src"
+  },
+  {
+    "Sourcefile": "/home/mih/projects/picocalc_experiments/editor/build/sketch/editor.ino.cpp",
+    "Include": "PCKeyboard.h",
+    "Includepath": "/home/mih/Arduino/libraries/arduino_picocalc_kbd/src"
+  },
+  {
+    "Sourcefile": "/home/mih/projects/picocalc_experiments/editor/build/sketch/editor.ino.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "/home/mih/Arduino/libraries/TFT_eSPI/TFT_eSPI.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "/home/mih/.arduino15/packages/rp2040/hardware/rp2040/4.5.1/libraries/SPI/src/SPI.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "/home/mih/.arduino15/packages/rp2040/hardware/rp2040/4.5.1/libraries/LittleFS/src/LittleFS.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "/home/mih/.arduino15/packages/rp2040/hardware/rp2040/4.5.1/libraries/LittleFS/src/lfs.c",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "/home/mih/.arduino15/packages/rp2040/hardware/rp2040/4.5.1/libraries/LittleFS/src/lfs_util.c",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "/home/mih/.arduino15/packages/rp2040/hardware/rp2040/4.5.1/libraries/Wire/src/Wire.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "/home/mih/Arduino/libraries/arduino_picocalc_kbd/src/PCKeyboard.cpp",
+    "Include": "",
+    "Includepath": null
+  }
+]

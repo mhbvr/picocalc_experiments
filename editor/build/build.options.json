@@ -1,0 +1,9 @@
+{
+  "additionalFiles": "../..",
+  "compiler.optimization_flags": "",
+  "customBuildProperties": "build.warn_data_percentage=75",
+  "fqbn": "rp2040:rp2040:rpipico",
+  "hardwareFolders": "/home/mih/.arduino15/packages",
+  "otherLibrariesFolders": "/home/mih/Arduino/libraries",
+  "sketchLocation": "/home/mih/projects/picocalc_experiments/editor"
+}
