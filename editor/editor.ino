@@ -74,11 +74,16 @@ struct viewer {
   // Distance between lines in pixels
   uint16_t line_dist;
 
+  uint16_t line_width;
+  uint16_t border;
+  uint16_t space;
+
   // Font for TFT_eSPI
   int font_id;
 
   uint32_t text_color;
   uint32_t bg_color;
+  uint32_t line_color;
 };
 
 char *text = 
@@ -164,12 +169,16 @@ void initViewer() {
   V.char_height = 8;
   V.char_width = 6;
   V.line_dist = 1;
+  V.line_width = 2;
+  V.border = 0;
+  V.space = 2;
 
-  V.screen_lines = SCREEN_HEIGHT / (V.line_dist + V.char_height);
-  V.screen_columns = SCREEN_WIDTH / V.char_width;
+  V.screen_lines = (SCREEN_HEIGHT - V.line_width - V.line_dist) / (V.line_dist + V.char_height) - 1;
+  V.screen_columns = (SCREEN_WIDTH - 2 * (V.border + V.line_width + V.space)) / V.char_width;
   V.font_id = 1;
   V.text_color = TFT_GREEN;
   V.bg_color = TFT_BLACK;
+  V.line_color = TFT_ORANGE;
 
   // For test only
   read_str(text);
@@ -205,7 +214,20 @@ void refresh_screen() {
     
     if (V.screen_y + l >= V.lines) {
       // All lines printed
-      return;
+      break;
+    }
+    
+    int line_len = V.line_buff[V.screen_y + l]->size;
+    int32_t pos_y = l * (V.char_height + V.line_dist);
+
+    // Left marker
+    if (V.screen_x > 0 && line_len > 0) {
+      tft.fillRect(V.border, pos_y, V.line_width, V.char_height + V.line_dist, V.line_color);
+    }
+
+    // Right marker
+    if (V.screen_x + V.screen_columns < line_len) {
+      tft.fillRect(SCREEN_WIDTH - V.border - V.line_width, pos_y, V.line_width, V.char_height + V.line_dist, V.line_color);
     }
 
     if (V.line_buff[V.screen_y + l] == NULL || V.line_buff[V.screen_y + l]->size <= V.screen_x) {
@@ -213,7 +235,7 @@ void refresh_screen() {
       continue;
     }
 
-    int line_len = V.line_buff[V.screen_y + l]->size;
+
 
     for (int c = 0; c < V.screen_columns; c++) {
       if (V.screen_x + c >= line_len) {
@@ -222,24 +244,38 @@ void refresh_screen() {
 
       char sym = V.line_buff[V.screen_y + l]->buffer[V.screen_x + c];
 
-      int32_t pos_x = c * V.char_width;
-      int32_t pos_y = l * (V.char_height + V.line_dist);
+      int32_t pos_x = c * V.char_width + V.border + V.line_width + V.space;
       tft.drawChar(pos_x, pos_y, sym, V.text_color, V.bg_color, V.font_id);
     }
+
+    
   }
+
+  // Status bar
+  tft.fillRect(V.border, SCREEN_HEIGHT - V.line_dist - V.char_height - V.line_width, SCREEN_WIDTH - 2 * V.border, V.line_width, V.line_color);
 }
 
 void update_line() {
   int len = line_length();
-  
+  int32_t y = V.cursor_y * (V.char_height + V.line_dist);
+
   for (int i = 0; i < V.screen_columns; i++) {
-    int32_t x = i * V.char_width;
-    int32_t y = V.cursor_y * (V.char_height + V.line_dist);
+    int32_t x = i * V.char_width + V.border + V.line_width + V.space;  
     tft.fillRect(x, y, V.char_width, V.char_height, V.bg_color);
     if (V.screen_x + i < len) {
       char sym = (V.line_buff[V.screen_y + V.cursor_y]->buffer)[V.screen_x + i];
       tft.drawChar(x, y, sym, V.text_color, V.bg_color, V.font_id);
     }
+  }
+  
+  // Left marker
+  if (V.screen_x > 0 && len > 0) {
+    tft.fillRect(V.border, y, V.line_width, V.char_height + V.line_dist, V.line_color);
+  }
+
+  // Right marker
+  if (V.screen_x + V.screen_columns < len) {
+    tft.fillRect(SCREEN_WIDTH - V.border - V.line_width, y, V.line_width, V.char_height + V.line_dist, V.line_color);
   }  
 }
 
@@ -256,7 +292,7 @@ void cursor(bool show) {
     c = current_line->buffer[V.cursor_x + V.screen_x];
   }
 
-  int32_t pos_x = V.cursor_x * V.char_width;
+  int32_t pos_x = V.cursor_x * V.char_width + V.border + V.line_width + V.space;
   int32_t pos_y = V.cursor_y * (V.char_height + V.line_dist);
 
   // Default value to clear cursor;
