@@ -156,10 +156,10 @@ struct screen *new_screen() {
   screen *s = (screen *)malloc(sizeof(screen));
   memset(s, 0, sizeof(screen));
 
-  s->char_height = 8 * 2;
-  s->char_width = 6 * 2;
-  s->line_dist = 2;
-  s->font_id = 2;
+  s->char_height = 14;
+  s->char_width = 8;
+  s->line_dist = 0;
+  s->font_id = 1;
   
   s->text_color = TFT_GREEN;
   s->bg_color = TFT_BLACK;
@@ -174,8 +174,12 @@ struct screen *new_screen() {
   tft.invertDisplay(1);
   tft.setTextWrap(false, false);     // Disable text wrapping
 
+  tft.setFreeFont(GOHU_FONT);
+ // tft.setTextDatum(TL_DATUM);
+
   // Configure vertical scrolling
   s->scroll_area = s->lines * (s->char_height + s->line_dist);
+  //s->scroll_area = SCREEN_HEIGHT;
   s->bfa = SCREEN_ILI9488_HEIGHT - s->scroll_area;
   tft.writecommand(VSCRDEF);         // Vertical scroll
   tft.writedata(0);                  // Top Fixed Area line count
@@ -212,6 +216,7 @@ void scroll(screen *s) {
   // Wrapping arond the scroll
   // Will be more complecated with non zero TFA and BFA
   if (s->y_start >= s->scroll_area) s->y_start = s->y_start - s->scroll_area;
+  //if (s->y_start >= s->scroll_area) s->y_start = 0;
 
   tft.writecommand(VSCRSADD); // Vertical scrolling pointer
   tft.writedata((s->y_start)>>8);
@@ -233,7 +238,9 @@ void next_line(struct screen *s, bool scrl) {
 void write(struct screen *s, char c, bool move, bool scrl) {
   int pos_x = s->x * s->char_width;
   int pos_y = (s->y_start + s->y * (s->char_height + s->line_dist)) % s->scroll_area;
-  tft.drawChar(pos_x, pos_y, c, s->text_color, s->bg_color, s->font_id);
+  // Need to make a background 
+  tft.fillRect(pos_x, pos_y, s->char_width, s->char_height, s->bg_color);
+  tft.drawChar(pos_x, pos_y, c, s->text_color, s->bg_color, 1);
 
   if (!move) return;
 
@@ -259,6 +266,20 @@ void cursor(struct screen *s, char c, bool show) {
     set_colors(s, text_color, bg_color);
   }
 }
+
+struct repl {
+  line * current_line;
+  uint8_t num_lines;
+
+  // Cursor position in the line
+  int pos;
+
+  // Position of the line start on the screen.
+  // start_y should be updated after scrolling.
+  uint8_t start_x;
+  uint8_t start_y;
+};
+
 
 void setup() {
   // Init I2C keyboard
