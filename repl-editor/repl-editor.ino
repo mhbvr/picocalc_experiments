@@ -4,7 +4,15 @@
 
 // Screen size in pixels
 #define SCREEN_WIDTH  320
+#define SCREEN_ILI9488_HEIGHT 480
 #define SCREEN_HEIGHT 320
+
+// Display commands
+
+// Vertical Scrolling Start Address
+#define VSCRSADD 0x37
+// Vertical Scrolling Definition
+#define VSCRDEF 0x33
 
 // Keycodes
 
@@ -37,10 +45,10 @@
 #define F9          0x89
 #define F10         0x90
 
+// REPL
+
 PCKeyboard pc_kbd;
 TFT_eSPI tft;
-
-// REPL
 
 struct line {
   char *buffer;
@@ -50,8 +58,8 @@ struct line {
 };
 
 // Add empty line to after the curr one.
-line *new_line(line *curr) {
-  line *res = (line *)malloc(sizeof(line))
+struct line *new_line(line *curr) {
+  line *res = (line *)malloc(sizeof(line));
   memset(res, 0, sizeof(line));
   res->prev = curr;
   res->next = curr->next;
@@ -88,7 +96,7 @@ void add_char(line *l, char c, int pos) {
   for (int i = l->size - 1; i > pos; i--) {
     l->buffer[i] = l->buffer[i-1];
   }
-
+ 
   l->buffer[pos] = c;
 }
 
@@ -103,32 +111,15 @@ void del_char(line *l, int pos) {
   l->buffer = (char *)realloc(l->buffer, sizeof(char) * l->size);
 }
 
-char get_char(int pos) {
+char get_char(line *l, int pos) {
   if (pos < 0 || pos >= l->size) return 0;
   return l->buffer[pos];
 }
 
-struct repl {
-  // Current line in the linked list
-  line *l
-  
-  // Max number of lines in the array
-  uint32_t max_lines;
-
-  char *prompt;
-  uint16_t prompt_len;
-
-  // Relative cursor position
-  uint8_t cursor_x;
-  uint8_t cursor_y;
-
-  // Font dimentions in pixels
-  int16_t char_height;
-  int16_t char_width;
-
-  // Total number of lines and colunms on the screen
-  uint8_t screen_lines;
-  uint8_t screen_columns;
+struct screen {
+  // Total number of character lines and colunms on the screen
+  uint8_t lines;
+  uint8_t columns;
 
   // Distance between lines in pixels
   uint16_t line_dist;
@@ -136,42 +127,137 @@ struct repl {
   // Font for TFT_eSPI
   int font_id;
 
+  // Font dimentions in pixels
+  int16_t char_height;
+  int16_t char_width;
+
+  // Colors
   uint32_t text_color;
   uint32_t bg_color;
-  uint32_t bracket_color;
-  uint32_t completion_color;
+
+  // Current text position in characters;
+  uint8_t x;
+  uint8_t y;
+
+  // Number of the top pixelline. 
+  uint16_t y_start;
+
+  // Number of scrolls
+  uint16_t scrolls;
+
+  // Hardware scrolling parameters
+  uint16_t scroll_area;
+  uint16_t bfa;
 };
 
+struct screen *S;
 
-struct repl R;
+struct screen *new_screen() {
+  screen *s = (screen *)malloc(sizeof(screen));
+  memset(s, 0, sizeof(screen));
 
-void initViewer() {
-  V.line_buff = NULL;
-  V.lines = 0;
-  V.screen_x = 0;
-  V.screen_y = 0;
-  V.cursor_x = 0;
-  V.cursor_y = 0;
+  s->char_height = 8 * 2;
+  s->char_width = 6 * 2;
+  s->line_dist = 2;
+  s->font_id = 2;
   
-  V.char_height = 8 * 2;
-  V.char_width = 6 * 2;
-  V.line_dist = 1;
-  V.line_width = 2;
-  V.border = 0;
-  V.space = 2;
+  s->text_color = TFT_GREEN;
+  s->bg_color = TFT_BLACK;
 
-  V.screen_lines = (SCREEN_HEIGHT - V.line_width - V.line_dist) / (V.line_dist + V.char_height) - 1;
-  V.screen_columns = (SCREEN_WIDTH - 2 * (V.border + V.line_width + V.space)) / V.char_width;
-  V.font_id = 1;
-  V.text_color = TFT_GREEN;
-  V.bg_color = TFT_BLACK
-  V.bracket_color = TFT_ORANGE;
-  V.competion_color = TFT_LIGHTGRAY;
+  s->lines = SCREEN_HEIGHT / (s->char_height + s->line_dist);
+  s->columns = SCREEN_WIDTH / s->char_width;
 
-  // For test only
-  read_str(text);
+  // Init display
+  tft = TFT_eSPI(SCREEN_WIDTH, SCREEN_HEIGHT);
+  tft.init();
+  tft.setRotation(0);
+  tft.invertDisplay(1);
+  tft.setTextWrap(false, false);     // Disable text wrapping
 
-  refresh_screen();
+  // Configure vertical scrolling
+  s->scroll_area = s->lines * (s->char_height + s->line_dist);
+  s->bfa = SCREEN_ILI9488_HEIGHT - s->scroll_area;
+  tft.writecommand(VSCRDEF);         // Vertical scroll
+  tft.writedata(0);                  // Top Fixed Area line count
+  tft.writedata(0);
+  tft.writedata((s->scroll_area)>>8);    // Vertical Scrolling Area line count
+  tft.writedata((s->scroll_area) & 0xFF);
+  tft.writedata((s->bfa)>>8);                  // Bottom Fixed Area line count
+  tft.writedata((s->bfa) & 0xFF);
+
+  tft.fillScreen(s->bg_color);
+  return s;
+}
+
+int set_position(struct screen *s, int x, int y) {
+  if (x < 0 || x >= s->columns) return -1;
+  if (y < 0 || y >= s->lines) return -1;
+
+  s->x = x;
+  s->y = y;
+  return 0;
+}
+
+void set_colors(struct screen *s, uint32_t text, uint32_t bg) {
+  s->text_color = text;
+  s->bg_color = bg;
+}
+
+void scroll(screen *s) {
+  // Clear top line
+  tft.fillRect(0, s->y_start, SCREEN_WIDTH, s->char_height + s->line_dist, s->bg_color);
+  
+  s->y_start = s->y_start + s->char_height + s->line_dist;
+
+  // Wrapping arond the scroll
+  // Will be more complecated with non zero TFA and BFA
+  if (s->y_start >= s->scroll_area) s->y_start = s->y_start - s->scroll_area;
+
+  tft.writecommand(VSCRSADD); // Vertical scrolling pointer
+  tft.writedata((s->y_start)>>8);
+  tft.writedata((s->y_start) & 0xFF);
+}
+
+void next_line(struct screen *s, bool scrl) {
+  if (s->y == s->lines - 1) {
+    if (!scrl) return; 
+    scroll(s);
+    s->scrolls++;
+  } else {
+    s->y++;   
+  }
+
+  s->x = 0;
+}
+
+void write(struct screen *s, char c, bool move, bool scrl) {
+  int pos_x = s->x * s->char_width;
+  int pos_y = (s->y_start + s->y * (s->char_height + s->line_dist)) % s->scroll_area;
+  tft.drawChar(pos_x, pos_y, c, s->text_color, s->bg_color, s->font_id);
+
+  if (!move) return;
+
+  if (s->x < s->columns - 1) {
+    s->x++;
+    return;
+  }
+
+  next_line(s, scrl);
+}
+
+void cursor(struct screen *s, char c, bool show) {
+  uint32_t text_color = s->text_color;
+  uint32_t bg_color = s->bg_color;
+
+  if (show) {
+    set_colors(s, s->bg_color, s->text_color);
+  }
+
+  write(s, c, false, false);
+
+  if (show) {
+    set_colors(s, text_color, bg_color);
+  }
 }
 
 void setup() {
@@ -180,50 +266,35 @@ void setup() {
   Wire1.setSCL(7);                                                                                                     
   Wire1.setClock(10000);
   Wire1.begin();  
-  pc_kbd.begin(PCKEYBOARD_DEFAULT_ADDR, &Wire1);                                                                                         
-  
-  // Init display
-  tft = TFT_eSPI(SCREEN_WIDTH, SCREEN_HEIGHT);
-  tft.init();
-  tft.setRotation(0);
-  tft.invertDisplay(1);
-  tft.fillScreen(TFT_BLACK); 
-  // Disable text wrapping
-  tft.setTextWrap(false, false); 
-
-  initViewer();
-  cursor(true);
+  pc_kbd.begin(PCKEYBOARD_DEFAULT_ADDR, &Wire1);
+  S = new_screen();
+  cursor(S, ' ', true);
 }
 
-
+bool is_printable(char c) {
+  if (c >= 0x20 && c <= 0x7e) return true;
+  return false;
+}
 
 void loop() {
   if (pc_kbd.keyCount() > 0) {
     PCKeyboard::KeyEvent event = pc_kbd.keyEvent();
     if (event.state ==  PCKeyboard::StatePress) {
       if (is_printable(event.key)) {
-        add_char(event.key);
+        // cursor(S, ' ', false);
+        write(S, event.key, true, true);
+        cursor(S, ' ', true);
         return;
       }
 
       switch(event.key) {
-      case ARROW_UP:
-      case ARROW_DOWN:
-      case ARROW_LEFT:
-      case ARROW_RIGHT:
-      case HOME:
-      case END:
-        move_cursor(event.key);
-        break;
-      case DELETE:
-        handle_delete();
-        break;
-      case BACKSPACE:
-        handle_backspace();
-        break;
       case ENTER:
-        handle_enter();
+        cursor(S, ' ', false);
+        next_line(S, true);
+        cursor(S, ' ', true);
         break;
+      case ESC:
+        scroll(S);
       }
     }
   }
