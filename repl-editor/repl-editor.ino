@@ -14,6 +14,8 @@
 // Vertical Scrolling Definition
 #define VSCRDEF 0x33
 
+#define MAX_HISTORY 10
+
 // Keycodes
 
 // Cursor movement
@@ -316,6 +318,7 @@ int write(struct screen *s, char c, int move, int allow_scroll) {
 struct repl {
   struct line *line;
   uint8_t num_lines;
+  uint8_t max_history;
 
   // Cursor position in the line
   int pos;
@@ -330,6 +333,7 @@ struct repl *init_repl() {
   struct repl *r = (struct repl*)malloc(sizeof(struct repl));
   if (r == NULL) return r;
   memset(r, 0, sizeof(struct repl));
+  r->max_history = MAX_HISTORY;
 
   return r;
 }
@@ -433,9 +437,15 @@ bool is_printable(char c) {
 }
 
 char * read_line(struct repl *r, struct screen *s) {
+  if (r->num_lines > r->max_history) {
+    delete_line(first(r->line));
+    r->num_lines--;
+  }
+
   if (r->line == NULL || r->line->size > 0) {
-    // First run on non empty prev input
+    // First run or non empty prev input
     r->line = insert_line(r->line, init_line());
+    r->num_lines++;
   }
 
   write(s, '>', 1, 1);
@@ -510,12 +520,16 @@ char * read_line(struct repl *r, struct screen *s) {
           move_next_line(s, 1);
           s->x = 0;
 
+          // Check if the line is not the last one
+          // It means it is history line.
           if (r->line->next != NULL) {
-            // Edited history line
+            // Drop the new line as we use the history
+            delete_line(last(r->line));
+            r->num_lines--;
+            
             struct line *current = r->line;
             r->line = extract_line(current);
-            r->line = last(r->line);
-            r->line = insert_line(r->line, current);
+            r->line = insert_line(last(r->line), current);
           }
           return r->line->buffer;
           break;
